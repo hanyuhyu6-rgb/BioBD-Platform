@@ -1,0 +1,928 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BioBD Enhanced V4+V5 Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+            color: #e2e8f0;
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+        
+        /* Header */
+        .header {
+            background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(20px);
+            padding: 20px 40px;
+            border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        
+        .header h1 {
+            font-size: 26px;
+            font-weight: 700;
+            background: linear-gradient(90deg, #38bdf8, #818cf8, #c084fc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .version-badge {
+            font-size: 11px;
+            padding: 4px 10px;
+            background: rgba(56, 189, 248, 0.15);
+            border: 1px solid rgba(56, 189, 248, 0.3);
+            border-radius: 20px;
+            color: #38bdf8;
+            font-weight: 600;
+        }
+        
+        .connection-status {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 14px;
+            color: #94a3b8;
+        }
+        
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #ef4444;
+            transition: all 0.3s ease;
+            box-shadow: 0 0 0 rgba(239, 68, 68, 0.4);
+        }
+        
+        .status-dot.connected {
+            background: #22c55e;
+            box-shadow: 0 0 10px rgba(34, 197, 94, 0.6);
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.4); }
+            50% { box-shadow: 0 0 0 8px rgba(34, 197, 94, 0); }
+        }
+        
+        /* Stats Bar */
+        .stats-bar {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+            padding: 24px 40px;
+        }
+        
+        .stat-card {
+            background: rgba(30, 41, 59, 0.6);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 24px;
+            border: 1px solid rgba(148, 163, 184, 0.1);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #38bdf8, #818cf8);
+            opacity: 0.5;
+            transition: opacity 0.3s;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-4px);
+            background: rgba(30, 41, 59, 0.8);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+        
+        .stat-card:hover::before {
+            opacity: 1;
+        }
+        
+        .stat-label {
+            font-size: 12px;
+            color: #94a3b8;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+        
+        .stat-value {
+            font-size: 36px;
+            font-weight: 800;
+            background: linear-gradient(90deg, #f8fafc, #cbd5e1);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .stat-sub {
+            font-size: 13px;
+            color: #64748b;
+            margin-top: 4px;
+        }
+        
+        /* Charts Section */
+        .charts-section {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            padding: 0 40px 20px;
+        }
+        
+        .chart-card {
+            background: rgba(30, 41, 59, 0.4);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 20px;
+            border: 1px solid rgba(148, 163, 184, 0.1);
+        }
+        
+        .chart-title {
+            font-size: 14px;
+            color: #94a3b8;
+            margin-bottom: 16px;
+            font-weight: 600;
+        }
+        
+        .chart-content {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        
+        .chart-bar {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            background: rgba(56, 189, 248, 0.1);
+            border-radius: 8px;
+            font-size: 13px;
+        }
+        
+        .chart-bar-label {
+            color: #cbd5e1;
+        }
+        
+        .chart-bar-value {
+            color: #38bdf8;
+            font-weight: 600;
+        }
+        
+        /* Controls */
+        .controls {
+            padding: 20px 40px;
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        
+        .search-box {
+            flex: 1;
+            min-width: 300px;
+            position: relative;
+        }
+        
+        .search-box input {
+            width: 100%;
+            padding: 14px 20px 14px 48px;
+            border-radius: 12px;
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            background: rgba(30, 41, 59, 0.6);
+            color: #e2e8f0;
+            font-size: 15px;
+            outline: none;
+            transition: all 0.2s;
+        }
+        
+        .search-box input:focus {
+            border-color: #38bdf8;
+            box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.1);
+        }
+        
+        .search-box input::placeholder {
+            color: #64748b;
+        }
+        
+        .search-box::before {
+            content: "🔍";
+            position: absolute;
+            left: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 16px;
+        }
+        
+        .filter-select {
+            padding: 14px 20px;
+            border-radius: 12px;
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            background: rgba(30, 41, 59, 0.6);
+            color: #e2e8f0;
+            font-size: 15px;
+            cursor: pointer;
+            min-width: 150px;
+            outline: none;
+            transition: all 0.2s;
+        }
+        
+        .filter-select:focus {
+            border-color: #38bdf8;
+        }
+        
+        .filter-select option {
+            background: #1e293b;
+            color: #e2e8f0;
+        }
+        
+        .results-count {
+            font-size: 14px;
+            color: #64748b;
+            margin-left: auto;
+        }
+        
+        /* Assets Grid */
+        .assets-grid {
+            padding: 20px 40px 40px;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+            gap: 20px;
+        }
+        
+        .asset-card {
+            background: rgba(30, 41, 59, 0.5);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 24px;
+            border: 1px solid rgba(148, 163, 184, 0.1);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .asset-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #38bdf8, #818cf8, #c084fc);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        
+        .asset-card:hover::before {
+            opacity: 1;
+        }
+        
+        .asset-card:hover {
+            transform: translateY(-4px);
+            background: rgba(30, 41, 59, 0.7);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+        }
+        
+        .asset-card.priority-high {
+            border-left: 3px solid #ef4444;
+        }
+        
+        .asset-card.priority-medium {
+            border-left: 3px solid #f59e0b;
+        }
+        
+        .asset-card.priority-low {
+            border-left: 3px solid #22c55e;
+        }
+        
+        .asset-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 16px;
+        }
+        
+        .asset-id {
+            font-size: 11px;
+            color: #64748b;
+            font-family: 'SF Mono', Monaco, monospace;
+            background: rgba(15, 23, 42, 0.5);
+            padding: 4px 8px;
+            border-radius: 6px;
+        }
+        
+        .asset-priority {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .priority-high .asset-priority {
+            background: rgba(239, 68, 68, 0.15);
+            color: #f87171;
+        }
+        
+        .priority-medium .asset-priority {
+            background: rgba(245, 158, 11, 0.15);
+            color: #fbbf24;
+        }
+        
+        .priority-low .asset-priority {
+            background: rgba(34, 197, 94, 0.15);
+            color: #4ade80;
+        }
+        
+        .asset-target {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            color: #f8fafc;
+            line-height: 1.3;
+        }
+        
+        .asset-indication {
+            font-size: 14px;
+            color: #94a3b8;
+            margin-bottom: 16px;
+            line-height: 1.5;
+        }
+        
+        .asset-meta {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+        
+        .meta-item {
+            text-align: center;
+            padding: 12px;
+            background: rgba(15, 23, 42, 0.4);
+            border-radius: 10px;
+        }
+        
+        .meta-label {
+            font-size: 10px;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 6px;
+        }
+        
+        .meta-value {
+            font-size: 13px;
+            font-weight: 600;
+            color: #e2e8f0;
+        }
+        
+        .asset-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-top: 16px;
+            border-top: 1px solid rgba(148, 163, 184, 0.1);
+        }
+        
+        .ai-score {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .score-value {
+            font-size: 28px;
+            font-weight: 800;
+            background: linear-gradient(90deg, #38bdf8, #818cf8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .trend {
+            font-size: 18px;
+            filter: drop-shadow(0 0 4px rgba(56, 189, 248, 0.5));
+        }
+        
+        .data-quality {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 6px;
+        }
+        
+        .quality-label {
+            font-size: 11px;
+            color: #64748b;
+        }
+        
+        .quality-bar-container {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .quality-bar {
+            width: 80px;
+            height: 4px;
+            background: rgba(148, 163, 184, 0.2);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+        
+        .quality-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #38bdf8, #818cf8);
+            transition: width 0.5s ease;
+            border-radius: 2px;
+        }
+        
+        .quality-value {
+            font-size: 12px;
+            color: #94a3b8;
+            font-weight: 600;
+            min-width: 32px;
+        }
+        
+        /* Loading */
+        .loading {
+            text-align: center;
+            padding: 80px;
+            color: #64748b;
+            grid-column: 1 / -1;
+        }
+        
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 3px solid rgba(148, 163, 184, 0.2);
+            border-top-color: #38bdf8;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        /* Last Update */
+        .last-update {
+            font-size: 12px;
+            color: #64748b;
+            text-align: center;
+            padding: 20px;
+            border-top: 1px solid rgba(148, 163, 184, 0.1);
+        }
+        
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.5);
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: rgba(148, 163, 184, 0.3);
+            border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(148, 163, 184, 0.5);
+        }
+        
+        /* Responsive */
+        @media (max-width: 1200px) {
+            .stats-bar {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .charts-section {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .header {
+                padding: 16px 20px;
+                flex-direction: column;
+                gap: 12px;
+            }
+            .stats-bar, .controls, .assets-grid, .charts-section {
+                padding-left: 20px;
+                padding-right: 20px;
+            }
+            .stats-bar {
+                grid-template-columns: 1fr;
+            }
+            .assets-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-left">
+            <h1>🔬 BioBD Enhanced Dashboard</h1>
+            <span class="version-badge">V4+V5 • 1492 Assets</span>
+        </div>
+        <div class="connection-status">
+            <span class="status-dot" id="statusDot"></span>
+            <span id="statusText">Connecting...</span>
+        </div>
+    </div>
+    
+    <div class="stats-bar">
+        <div class="stat-card">
+            <div class="stat-label">Total Assets</div>
+            <div class="stat-value" id="totalAssets">-</div>
+            <div class="stat-sub">BioBD Database</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Avg AI Score</div>
+            <div class="stat-value" id="avgScore">-</div>
+            <div class="stat-sub">Real-time scoring</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">High Priority</div>
+            <div class="stat-value" id="highPriority">-</div>
+            <div class="stat-sub">P0 & P1 assets</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Active Clients</div>
+            <div class="stat-value" id="activeClients">1</div>
+            <div class="stat-sub">Connected users</div>
+        </div>
+    </div>
+    
+    <div class="charts-section">
+        <div class="chart-card">
+            <div class="chart-title">📊 Phase Distribution</div>
+            <div class="chart-content" id="phaseChart">
+                <span style="color: #64748b;">Loading...</span>
+            </div>
+        </div>
+        <div class="chart-card">
+            <div class="chart-title">🌍 Region Distribution</div>
+            <div class="chart-content" id="regionChart">
+                <span style="color: #64748b;">Loading...</span>
+            </div>
+        </div>
+    </div>
+    
+    <div class="controls">
+        <div class="search-box">
+            <input type="text" id="searchInput" placeholder="Search by target, indication, company, asset ID...">
+        </div>
+        <select class="filter-select" id="phaseFilter">
+            <option value="">All Phases</option>
+            <option value="Approved">Approved</option>
+            <option value="Phase III">Phase III</option>
+            <option value="Phase II">Phase II</option>
+            <option value="Phase I">Phase I</option>
+            <option value="Preclinical">Preclinical</option>
+            <option value="Platform">Platform</option>
+            <option value="N/A">N/A</option>
+        </select>
+        <select class="filter-select" id="regionFilter">
+            <option value="">All Regions</option>
+            <option value="中国">中国</option>
+            <option value="美国">美国</option>
+            <option value="全球">全球</option>
+            <option value="欧洲">欧洲</option>
+            <option value="日本">日本</option>
+            <option value="其他">其他</option>
+        </select>
+        <select class="filter-select" id="priorityFilter">
+            <option value="">All Priorities</option>
+            <option value="High">High (P0)</option>
+            <option value="Medium">Medium (P1)</option>
+            <option value="Low">Low (P2)</option>
+        </select>
+        <span class="results-count" id="resultsCount"></span>
+    </div>
+    
+    <div class="assets-grid" id="assetsGrid">
+        <div class="loading">
+            <div class="loading-spinner"></div>
+            <p>Loading 1492 assets...</p>
+        </div>
+    </div>
+    
+    <div class="last-update" id="lastUpdate">Waiting for data...</div>
+
+    <script>
+        // WebSocket connection
+        const WS_URL = 'ws://localhost:8765';
+        let ws = null;
+        let assets = [];
+        let filteredAssets = [];
+        let stats = null;
+        
+        const statusDot = document.getElementById('statusDot');
+        const statusText = document.getElementById('statusText');
+        const assetsGrid = document.getElementById('assetsGrid');
+        const searchInput = document.getElementById('searchInput');
+        const phaseFilter = document.getElementById('phaseFilter');
+        const regionFilter = document.getElementById('regionFilter');
+        const priorityFilter = document.getElementById('priorityFilter');
+        const resultsCount = document.getElementById('resultsCount');
+        
+        function connect() {
+            ws = new WebSocket(WS_URL);
+            
+            ws.onopen = () => {
+                console.log('✅ WebSocket connected');
+                statusDot.classList.add('connected');
+                statusText.textContent = 'Connected';
+            };
+            
+            ws.onmessage = (event) => {
+                const message = JSON.parse(event.data);
+                handleMessage(message);
+            };
+            
+            ws.onclose = () => {
+                console.log('❌ WebSocket disconnected');
+                statusDot.classList.remove('connected');
+                statusText.textContent = 'Reconnecting...';
+                setTimeout(connect, 3000);
+            };
+            
+            ws.onerror = (error) => {
+                console.error('WebSocket error:', error);
+            };
+        }
+        
+        function handleMessage(message) {
+            switch(message.type) {
+                case 'init':
+                    assets = message.data.assets;
+                    filteredAssets = [...assets];
+                    stats = message.data.stats;
+                    renderAssets();
+                    updateStats(message.data.metadata, stats);
+                    updateCharts(stats);
+                    break;
+                    
+                case 'asset_update':
+                    const updatedAsset = message.data;
+                    const index = assets.findIndex(a => a.id === updatedAsset.id);
+                    if (index !== -1) {
+                        assets[index] = updatedAsset;
+                        // Update filtered assets if visible
+                        const filteredIndex = filteredAssets.findIndex(a => a.id === updatedAsset.id);
+                        if (filteredIndex !== -1) {
+                            filteredAssets[filteredIndex] = updatedAsset;
+                            updateAssetCard(updatedAsset);
+                        }
+                    }
+                    break;
+                    
+                case 'stats_update':
+                    stats = message.data;
+                    document.getElementById('totalAssets').textContent = message.data.total_assets.toLocaleString();
+                    document.getElementById('avgScore').textContent = message.data.avg_score;
+                    document.getElementById('highPriority').textContent = message.data.high_priority;
+                    document.getElementById('lastUpdate').textContent = 
+                        `Last update: ${new Date().toLocaleTimeString()}`;
+                    updateCharts(message.data);
+                    break;
+                    
+                case 'filter_result':
+                    filteredAssets = message.data.assets;
+                    renderAssets();
+                    resultsCount.textContent = `${message.data.count} results`;
+                    break;
+                    
+                case 'search_result':
+                    filteredAssets = message.data.assets;
+                    renderAssets();
+                    resultsCount.textContent = `${message.data.count} matches`;
+                    break;
+            }
+        }
+        
+        function updateStats(metadata, stats) {
+            document.getElementById('totalAssets').textContent = metadata.total.toLocaleString();
+            if (stats) {
+                document.getElementById('avgScore').textContent = stats.avg_score;
+                document.getElementById('highPriority').textContent = stats.high_priority;
+            }
+        }
+        
+        function updateCharts(stats) {
+            if (!stats) return;
+            
+            // Phase chart
+            const phaseChart = document.getElementById('phaseChart');
+            const phaseDist = stats.phase_distribution || {};
+            const phaseOrder = ['Approved', 'Phase III', 'Phase II', 'Phase I', 'Preclinical', 'Platform', 'N/A'];
+            
+            phaseChart.innerHTML = phaseOrder
+                .filter(phase => phaseDist[phase])
+                .map(phase => `
+                    <div class="chart-bar">
+                        <span class="chart-bar-label">${phase}</span>
+                        <span class="chart-bar-value">${phaseDist[phase]}</span>
+                    </div>
+                `).join('');
+            
+            // Region chart
+            const regionChart = document.getElementById('regionChart');
+            const regionDist = stats.region_distribution || {};
+            const regionOrder = ['中国', '美国', '全球', '欧洲', '日本', '印度', '其他'];
+            
+            regionChart.innerHTML = regionOrder
+                .filter(region => regionDist[region])
+                .slice(0, 8)
+                .map(region => `
+                    <div class="chart-bar">
+                        <span class="chart-bar-label">${region}</span>
+                        <span class="chart-bar-value">${regionDist[region]}</span>
+                    </div>
+                `).join('');
+        }
+        
+        function getPriorityClass(priority) {
+            if (['High', 'P0'].includes(priority)) return 'priority-high';
+            if (['Medium', 'P1'].includes(priority)) return 'priority-medium';
+            return 'priority-low';
+        }
+        
+        function getPriorityLabel(priority) {
+            if (priority === 'P0') return 'High';
+            if (priority === 'P1') return 'Medium';
+            if (priority === 'P2') return 'Low';
+            return priority;
+        }
+        
+        function renderAssets() {
+            if (filteredAssets.length === 0) {
+                assetsGrid.innerHTML = '<div class="loading"><p>No assets found</p></div>';
+                return;
+            }
+            
+            assetsGrid.innerHTML = filteredAssets.map(asset => createAssetCard(asset)).join('');
+            resultsCount.textContent = `Showing ${filteredAssets.length} assets`;
+        }
+        
+        function createAssetCard(asset) {
+            const priorityClass = getPriorityClass(asset.priority);
+            const priorityLabel = getPriorityLabel(asset.priority);
+            const trend = asset.trend || '→';
+            
+            return `
+                <div class="asset-card ${priorityClass}" data-id="${asset.id}">
+                    <div class="asset-header">
+                        <span class="asset-id">${asset.id}</span>
+                        <span class="asset-priority">${priorityLabel}</span>
+                    </div>
+                    <div class="asset-target">${escapeHtml(asset.target)}</div>
+                    <div class="asset-indication">${escapeHtml(asset.indication)}</div>
+                    <div class="asset-meta">
+                        <div class="meta-item">
+                            <div class="meta-label">Phase</div>
+                            <div class="meta-value">${asset.phase}</div>
+                        </div>
+                        <div class="meta-item">
+                            <div class="meta-label">Region</div>
+                            <div class="meta-value">${asset.region}</div>
+                        </div>
+                        <div class="meta-item">
+                            <div class="meta-label">Company</div>
+                            <div class="meta-value">${escapeHtml(asset.company)}</div>
+                        </div>
+                    </div>
+                    <div class="asset-footer">
+                        <div class="ai-score">
+                            <span class="score-value">${asset.ai_score}</span>
+                            <span class="trend">${trend}</span>
+                        </div>
+                        <div class="data-quality">
+                            <span class="quality-label">Data Quality</span>
+                            <div class="quality-bar-container">
+                                <div class="quality-bar">
+                                    <div class="quality-fill" style="width: ${asset.data_quality}%"></div>
+                                </div>
+                                <span class="quality-value">${asset.data_quality}%</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        function updateAssetCard(asset) {
+            const card = document.querySelector(`[data-id="${asset.id}"]`);
+            if (card) {
+                const newCard = createAssetCard(asset);
+                card.outerHTML = newCard;
+            }
+        }
+        
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        function filterAssets() {
+            const search = searchInput.value.toLowerCase();
+            const phase = phaseFilter.value;
+            const region = regionFilter.value;
+            const priority = priorityFilter.value;
+            
+            // Send filter request to server
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({
+                    action: 'filter',
+                    filters: {
+                        search: search,
+                        phase: phase,
+                        region: region,
+                        priority: priority
+                    }
+                }));
+            } else {
+                // Fallback: client-side filtering
+                filteredAssets = assets.filter(asset => {
+                    const matchSearch = !search || 
+                        (asset.target && asset.target.toLowerCase().includes(search)) ||
+                        (asset.indication && asset.indication.toLowerCase().includes(search)) ||
+                        (asset.company && asset.company.toLowerCase().includes(search)) ||
+                        (asset.id && asset.id.toLowerCase().includes(search));
+                    
+                    const matchPhase = !phase || asset.phase === phase;
+                    const matchRegion = !region || asset.region === region || 
+                        (region === '其他' && !['中国', '美国', '全球', '欧洲', '日本'].includes(asset.region));
+                    const matchPriority = !priority || 
+                        (priority === 'High' && ['High', 'P0'].includes(asset.priority)) ||
+                        (priority === 'Medium' && ['Medium', 'P1'].includes(asset.priority)) ||
+                        (priority === 'Low' && ['Low', 'P2'].includes(asset.priority));
+                    
+                    return matchSearch && matchPhase && matchRegion && matchPriority;
+                });
+                renderAssets();
+            }
+        }
+        
+        // Event listeners
+        searchInput.addEventListener('input', debounce(filterAssets, 300));
+        phaseFilter.addEventListener('change', filterAssets);
+        regionFilter.addEventListener('change', filterAssets);
+        priorityFilter.addEventListener('change', filterAssets);
+        
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+        
+        // Connect on load
+        connect();
+    </script>
+</body>
+</html>
