@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BioBD - Biotech Asset Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1f36 0%, #0d1120 100%);
+            color: #fff;
+            min-height: 100vh;
+        }
+        
+        .header {
+            background: rgba(255,255,255,0.05);
+            backdrop-filter: blur(10px);
+            padding: 20px 40px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .header h1 {
+            font-size: 24px;
+            background: linear-gradient(90deg, #4facfe, #00f2fe);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .stats-bar {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+            padding: 20px 40px;
+        }
+        
+        .stat-card {
+            background: rgba(255,255,255,0.05);
+            border-radius: 16px;
+            padding: 24px;
+            border: 1px solid rgba(255,255,255,0.1);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+        }
+        
+        .stat-label {
+            font-size: 13px;
+            color: #8b92b4;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+        }
+        
+        .stat-value {
+            font-size: 36px;
+            font-weight: 700;
+            background: linear-gradient(90deg, #fff, #a0a8d0);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .controls {
+            padding: 20px 40px;
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+        
+        .search-box {
+            flex: 1;
+            min-width: 300px;
+            position: relative;
+        }
+        
+        .search-box input {
+            width: 100%;
+            padding: 12px 20px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 12px;
+            color: #fff;
+            font-size: 15px;
+            transition: all 0.2s;
+        }
+        
+        .search-box input:focus {
+            outline: none;
+            border-color: #4facfe;
+            background: rgba(255,255,255,0.08);
+        }
+        
+        .filter-select {
+            padding: 12px 20px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 12px;
+            color: #fff;
+            font-size: 15px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .filter-select:focus {
+            outline: none;
+            border-color: #4facfe;
+        }
+        
+        .assets-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+            gap: 20px;
+            padding: 20px 40px 40px;
+        }
+        
+        .asset-card {
+            background: rgba(255,255,255,0.05);
+            border-radius: 16px;
+            padding: 24px;
+            border: 1px solid rgba(255,255,255,0.1);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .asset-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            border-color: rgba(79,172,254,0.3);
+        }
+        
+        .asset-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+        
+        .asset-id {
+            font-family: 'SF Mono', monospace;
+            font-size: 13px;
+            color: #4facfe;
+            background: rgba(79,172,254,0.1);
+            padding: 4px 12px;
+            border-radius: 20px;
+        }
+        
+        .asset-priority {
+            font-size: 12px;
+            font-weight: 600;
+            padding: 4px 12px;
+            border-radius: 20px;
+            text-transform: uppercase;
+        }
+        
+        .priority-high {
+            background: rgba(255,71,87,0.2);
+            color: #ff4757;
+        }
+        
+        .priority-medium {
+            background: rgba(255,193,7,0.2);
+            color: #ffc107;
+        }
+        
+        .priority-low {
+            background: rgba(0,255,136,0.2);
+            color: #00ff88;
+        }
+        
+        .asset-target {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #fff;
+        }
+        
+        .asset-indication {
+            font-size: 14px;
+            color: #8b92b4;
+            margin-bottom: 16px;
+        }
+        
+        .asset-meta {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+        
+        .meta-item {
+            text-align: center;
+        }
+        
+        .meta-label {
+            font-size: 11px;
+            color: #5a6278;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
+        
+        .meta-value {
+            font-size: 14px;
+            font-weight: 500;
+            color: #a0a8d0;
+        }
+        
+        .asset-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-top: 16px;
+            border-top: 1px solid rgba(255,255,255,0.05);
+        }
+        
+        .ai-score {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .score-value {
+            font-size: 28px;
+            font-weight: 700;
+            background: linear-gradient(90deg, #4facfe, #00f2fe);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .trend {
+            font-size: 18px;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 60px;
+            color: #8b92b4;
+        }
+        
+        .error {
+            text-align: center;
+            padding: 60px;
+            color: #ff4757;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🧬 BioBD Asset Dashboard</h1>
+        <div>1492 Assets | Static Version</div>
+    </div>
+
+    <div class="stats-bar">
+        <div class="stat-card">
+            <div class="stat-label">Total Assets</div>
+            <div class="stat-value" id="totalAssets">-</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Avg AI Score</div>
+            <div class="stat-value" id="avgScore">-</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">High Priority</div>
+            <div class="stat-value" id="highPriority">-</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Preclinical</div>
+            <div class="stat-value" id="preclinical">-</div>
+        </div>
+    </div>
+
+    <div class="controls">
+        <div class="search-box">
+            <input type="text" id="searchInput" placeholder="Search by target, indication, or company...">
+        </div>
+        <select class="filter-select" id="phaseFilter">
+            <option value="">All Phases</option>
+            <option value="Preclinical">Preclinical</option>
+            <option value="Phase 1">Phase 1</option>
+            <option value="Phase 2">Phase 2</option>
+            <option value="Phase 3">Phase 3</option>
+            <option value="Approved">Approved</option>
+        </select>
+        <select class="filter-select" id="regionFilter">
+            <option value="">All Regions</option>
+            <option value="中国">中国</option>
+            <option value="美国">美国</option>
+            <option value="欧洲">欧洲</option>
+            <option value="日本">日本</option>
+            <option value="全球">全球</option>
+        </select>
+        <select class="filter-select" id="priorityFilter">
+            <option value="">All Priorities</option>
+            <option value="High">High</option>
+            <option value="Medium">Medium</option>
+            <option value="Low">Low</option>
+        </select>
+    </div>
+
+    <div class="assets-grid" id="assetsGrid">
+        <div class="loading">Loading assets...</div>
+    </div>
+
+    <script>
+        let allAssets = [];
+        let filteredAssets = [];
+
+        // Calculate AI score based on asset data
+        function calculateAIScore(asset) {
+            let score = 6.0;
+            
+            const phaseScores = {
+                "Preclinical": 5.5,
+                "Phase 1": 6.5,
+                "Phase 2": 7.5,
+                "Phase 3": 8.5,
+                "Approved": 9.5
+            };
+            
+            const phase = asset.phase || "";
+            score += (phaseScores[phase] || 6.0) * 0.2;
+            
+            // Innovation bonus
+            const mechanism = (asset.mechanism || "").toLowerCase();
+            if (mechanism.includes("car-t") || mechanism.includes("car-nk") || 
+                mechanism.includes("双抗") || mechanism.includes("treg")) {
+                score += 0.5;
+            }
+            
+            return Math.min(9.9, Math.max(5.0, score));
+        }
+
+        function calculatePriority(score) {
+            if (score >= 8.0) return "High";
+            if (score >= 6.5) return "Medium";
+            return "Low";
+        }
+
+        function normalizePhase(phase) {
+            if (!phase) return "Preclinical";
+            if (phase.includes("Phase 1") || phase.includes("Phase I")) return "Phase 1";
+            if (phase.includes("Phase 2") || phase.includes("Phase II")) return "Phase 2";
+            if (phase.includes("Phase 3") || phase.includes("Phase III")) return "Phase 3";
+            if (phase.includes("Approved") || phase.includes("获批") || phase.includes("上市")) return "Approved";
+            return "Preclinical";
+        }
+
+        function normalizeRegion(country) {
+            const c = (country || "").toString();
+            if (c.includes("中国") || c === "China") return "中国";
+            if (c.includes("美国") || c === "United States" || c === "USA") return "美国";
+            if (c.includes("日本") || c === "Japan") return "日本";
+            if (c.includes("欧") || c === "Europe") return "欧洲";
+            return "全球";
+        }
+
+        function formatIndications(inds) {
+            if (Array.isArray(inds)) return inds.slice(0, 2).join(", ");
+            return inds || "N/A";
+        }
+
+        async function loadAssets() {
+            try {
+                const response = await fetch('assets.json');
+                const data = await response.json();
+                
+                // Transform V5 data to display format
+                allAssets = data.map((asset, idx) => {
+                    const aiScore = calculateAIScore(asset);
+                    return {
+                        id: asset.asset_id || asset.id || `BIO${idx+1:05d}`,
+                        name: asset.asset_name || asset.name || "Unknown",
+                        target: asset.targets || asset.target || "N/A",
+                        indication: formatIndications(asset.indications),
+                        phase: normalizePhase(asset.phase),
+                        region: normalizeRegion(asset.country || asset.region),
+                        company: asset.company || "Unknown",
+                        ai_score: aiScore.toFixed(1),
+                        priority: calculatePriority(aiScore),
+                        data_quality: Math.floor((asset.data_quality || 0.8) * 100)
+                    };
+                });
+                
+                filteredAssets = allAssets;
+                updateStats();
+                renderAssets();
+            } catch (error) {
+                document.getElementById('assetsGrid').innerHTML = 
+                    `<div class="error">Failed to load assets: ${error.message}</div>`;
+            }
+        }
+
+        function updateStats() {
+            document.getElementById('totalAssets').textContent = allAssets.length;
+            
+            const avgScore = allAssets.reduce((sum, a) => sum + parseFloat(a.ai_score), 0) / allAssets.length;
+            document.getElementById('avgScore').textContent = avgScore.toFixed(2);
+            
+            const highPriority = allAssets.filter(a => a.priority === "High").length;
+            document.getElementById('highPriority').textContent = highPriority;
+            
+            const preclinical = allAssets.filter(a => a.phase === "Preclinical").length;
+            document.getElementById('preclinical').textContent = preclinical;
+        }
+
+        function renderAssets() {
+            const grid = document.getElementById('assetsGrid');
+            
+            if (filteredAssets.length === 0) {
+                grid.innerHTML = '<div class="loading">No assets found</div>';
+                return;
+            }
+            
+            grid.innerHTML = filteredAssets.slice(0, 100).map(asset => `
+                <div class="asset-card">
+                    <div class="asset-header">
+                        <span class="asset-id">${asset.id}</span>
+                        <span class="asset-priority priority-${asset.priority.toLowerCase()}">${asset.priority}</span>
+                    </div>
+                    <div class="asset-target">${asset.target}</div>
+                    <div class="asset-indication">${asset.indication}</div>
+                    <div class="asset-meta">
+                        <div class="meta-item">
+                            <div class="meta-label">Phase</div>
+                            <div class="meta-value">${asset.phase}</div>
+                        </div>
+                        <div class="meta-item">
+                            <div class="meta-label">Region</div>
+                            <div class="meta-value">${asset.region}</div>
+                        </div>
+                        <div class="meta-item">
+                            <div class="meta-label">Company</div>
+                            <div class="meta-value">${asset.company}</div>
+                        </div>
+                    </div>
+                    <div class="asset-footer">
+                        <div class="ai-score">
+                            <span class="score-value">${asset.ai_score}</span>
+                            <span class="trend">AI Score</span>
+                        </div>
+                        <div style="font-size: 12px; color: #5a6278;">
+                            Quality: ${asset.data_quality}%
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function filterAssets() {
+            const search = document.getElementById('searchInput').value.toLowerCase();
+            const phase = document.getElementById('phaseFilter').value;
+            const region = document.getElementById('regionFilter').value;
+            const priority = document.getElementById('priorityFilter').value;
+            
+            filteredAssets = allAssets.filter(asset => {
+                const matchSearch = !search || 
+                    asset.target.toLowerCase().includes(search) ||
+                    asset.indication.toLowerCase().includes(search) ||
+                    asset.company.toLowerCase().includes(search);
+                
+                const matchPhase = !phase || asset.phase === phase;
+                const matchRegion = !region || asset.region === region;
+                const matchPriority = !priority || asset.priority === priority;
+                
+                return matchSearch && matchPhase && matchRegion && matchPriority;
+            });
+            
+            renderAssets();
+        }
+
+        // Event listeners
+        document.getElementById('searchInput').addEventListener('input', filterAssets);
+        document.getElementById('phaseFilter').addEventListener('change', filterAssets);
+        document.getElementById('regionFilter').addEventListener('change', filterAssets);
+        document.getElementById('priorityFilter').addEventListener('change', filterAssets);
+
+        // Load assets on page load
+        loadAssets();
+    </script>
+</body>
+</html>
