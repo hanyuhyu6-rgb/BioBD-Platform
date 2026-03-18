@@ -1,0 +1,35 @@
+# Production Configuration
+server:
+  host: "0.0.0.0"
+  port: 8765
+  websocket_path: "/"
+  ssl_enabled: true
+  ssl_cert: "/path/to/cert.pem"
+  ssl_key: "/path/to/key.pem"
+
+data:
+  assets_file: "data/assets_master.json"
+  update_interval: 5  # seconds (slower updates for production)
+  max_update_assets: 5
+
+scoring:
+  weights:
+    innovation: 0.25
+    clinical_progress: 0.20
+    market_potential: 0.20
+    company_strength: 0.15
+    competitive_landscape: 0.20
+
+logging:
+  level: "WARNING"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  file: "logs/biobd.log"
+
+frontend:
+  auto_reload: false
+  theme: "dark"
+  cdn_enabled: true
+
+security:
+  rate_limit: 100  # requests per minute
+  max_connections: 1000

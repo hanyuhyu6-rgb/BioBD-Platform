@@ -1,0 +1,68 @@
+{
+  "name": "BioBD Asset Database",
+  "version": "V5.0",
+  "total_assets": 1492,
+  "last_updated": "2025-03-18",
+  "schema": {
+    "asset_id": {
+      "type": "string",
+      "description": "Unique asset identifier",
+      "format": "CN-{COMPANY}-{SEQ} or US-{COMPANY}-{SEQ} or EU-{COMPANY}-{SEQ} or JP-{COMPANY}-{SEQ}",
+      "example": "CN-HR-001"
+    },
+    "asset_name": {
+      "type": "string",
+      "description": "Asset name including generic name if available"
+    },
+    "company": {
+      "type": "string",
+      "description": "Company developing the asset"
+    },
+    "phase": {
+      "type": "string",
+      "description": "Clinical development phase",
+      "enum": ["Preclinical", "Phase 1", "Phase 2", "Phase 3", "Approved"]
+    },
+    "indications": {
+      "type": "array",
+      "items": {"type": "string"},
+      "description": "List of target indications"
+    },
+    "targets": {
+      "type": "string",
+      "description": "Molecular target(s)"
+    },
+    "mechanism": {
+      "type": "string",
+      "description": "Mechanism of action"
+    },
+    "country": {
+      "type": "string",
+      "description": "Country of origin",
+      "enum": ["China", "USA", "Europe", "Japan", "Korea", "India"]
+    },
+    "data_quality": {
+      "type": "number",
+      "description": "Data quality score (0-1)",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "data_sources": {
+      "type": "object",
+      "description": "Links to data sources"
+    },
+    "location": {
+      "type": "string",
+      "description": "Company location"
+    },
+    "funding": {
+      "type": "string",
+      "description": "Company funding type"
+    },
+    "priority": {
+      "type": "string",
+      "description": "Asset priority",
+      "enum": ["P0", "P1", "P2", "P3"]
+    }
+  }
+}

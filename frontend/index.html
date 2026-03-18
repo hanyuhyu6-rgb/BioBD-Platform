@@ -1,0 +1,787 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BioBD Platform - Real-time Biotech Asset Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #1a1f36 0%, #0d1120 50%, #0a0d1a 100%);
+            color: #fff;
+            min-height: 100vh;
+        }
+        
+        /* Header */
+        .header {
+            background: rgba(255,255,255,0.05);
+            backdrop-filter: blur(10px);
+            padding: 20px 40px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        
+        .header h1 {
+            font-size: 26px;
+            background: linear-gradient(90deg, #4facfe 0%, #00f2fe 50%, #4facfe 100%);
+            background-size: 200% auto;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: shimmer 3s linear infinite;
+        }
+        
+        @keyframes shimmer {
+            to { background-position: 200% center; }
+        }
+        
+        .connection-status {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 14px;
+            background: rgba(0,0,0,0.2);
+            padding: 8px 16px;
+            border-radius: 20px;
+        }
+        
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #ff4444;
+            transition: all 0.3s;
+            box-shadow: 0 0 0 rgba(255, 68, 68, 0.4);
+        }
+        
+        .status-dot.connected {
+            background: #00ff88;
+            box-shadow: 0 0 10px #00ff88, 0 0 20px rgba(0, 255, 136, 0.5);
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+        
+        /* Stats Bar */
+        .stats-bar {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+            padding: 20px 40px;
+        }
+        
+        .stat-card {
+            background: rgba(255,255,255,0.05);
+            border-radius: 16px;
+            padding: 24px;
+            border: 1px solid rgba(255,255,255,0.1);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.05), transparent);
+            transition: left 0.5s;
+        }
+        
+        .stat-card:hover::before {
+            left: 100%;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            border-color: rgba(79, 172, 254, 0.3);
+        }
+        
+        .stat-label {
+            font-size: 13px;
+            color: #8b92b4;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+        }
+        
+        .stat-value {
+            font-size: 36px;
+            font-weight: 700;
+            background: linear-gradient(90deg, #fff, #a0a8d0);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        /* Controls */
+        .controls {
+            padding: 20px 40px;
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        
+        .search-box {
+            flex: 1;
+            min-width: 300px;
+            position: relative;
+        }
+        
+        .search-box input {
+            width: 100%;
+            padding: 14px 20px 14px 48px;
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.1);
+            background: rgba(255,255,255,0.05);
+            color: #fff;
+            font-size: 15px;
+            outline: none;
+            transition: all 0.3s;
+        }
+        
+        .search-box input:focus {
+            border-color: #4facfe;
+            box-shadow: 0 0 0 3px rgba(79, 172, 254, 0.1);
+        }
+        
+        .search-box::before {
+            content: "🔍";
+            position: absolute;
+            left: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+        
+        .filter-select {
+            padding: 14px 20px;
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.1);
+            background: rgba(255,255,255,0.05);
+            color: #fff;
+            font-size: 15px;
+            cursor: pointer;
+            min-width: 150px;
+            outline: none;
+            transition: all 0.3s;
+        }
+        
+        .filter-select:hover {
+            border-color: rgba(79, 172, 254, 0.5);
+        }
+        
+        .filter-select:focus {
+            border-color: #4facfe;
+        }
+        
+        .filter-select option {
+            background: #1a1f36;
+        }
+        
+        .results-count {
+            color: #8b92b4;
+            font-size: 14px;
+            margin-left: auto;
+        }
+        
+        /* Assets Grid */
+        .assets-grid {
+            padding: 20px 40px 40px;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+            gap: 20px;
+        }
+        
+        .asset-card {
+            background: rgba(255,255,255,0.05);
+            border-radius: 16px;
+            padding: 24px;
+            border: 1px solid rgba(255,255,255,0.08);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .asset-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #4facfe, #00f2fe);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        
+        .asset-card:hover::before {
+            opacity: 1;
+        }
+        
+        .asset-card:hover {
+            transform: translateY(-4px);
+            background: rgba(255,255,255,0.08);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+        }
+        
+        .asset-card.highlight {
+            animation: highlight 1s ease;
+        }
+        
+        @keyframes highlight {
+            0% { box-shadow: 0 0 0 0 rgba(79, 172, 254, 0.5); }
+            50% { box-shadow: 0 0 20px 5px rgba(79, 172, 254, 0.3); }
+            100% { box-shadow: none; }
+        }
+        
+        .asset-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 16px;
+        }
+        
+        .asset-id {
+            font-size: 12px;
+            color: #6b7280;
+            font-family: 'SF Mono', Monaco, monospace;
+            background: rgba(255,255,255,0.05);
+            padding: 4px 8px;
+            border-radius: 6px;
+        }
+        
+        .asset-priority {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .priority-high {
+            background: rgba(239, 68, 68, 0.2);
+            color: #f87171;
+        }
+        
+        .priority-medium {
+            background: rgba(245, 158, 11, 0.2);
+            color: #fbbf24;
+        }
+        
+        .priority-low {
+            background: rgba(16, 185, 129, 0.2);
+            color: #34d399;
+        }
+        
+        .asset-target {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            color: #fff;
+        }
+        
+        .asset-indication {
+            font-size: 14px;
+            color: #8b92b4;
+            margin-bottom: 16px;
+            min-height: 20px;
+        }
+        
+        .asset-meta {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+        
+        .meta-item {
+            text-align: center;
+            padding: 12px 8px;
+            background: rgba(255,255,255,0.03);
+            border-radius: 10px;
+        }
+        
+        .meta-label {
+            font-size: 10px;
+            color: #6b7280;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 6px;
+        }
+        
+        .meta-value {
+            font-size: 13px;
+            font-weight: 600;
+            color: #fff;
+        }
+        
+        .asset-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-top: 16px;
+            border-top: 1px solid rgba(255,255,255,0.05);
+        }
+        
+        .ai-score {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .score-value {
+            font-size: 28px;
+            font-weight: 800;
+            background: linear-gradient(90deg, #4facfe, #00f2fe);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .trend {
+            font-size: 20px;
+            font-weight: bold;
+        }
+        
+        .trend-up { color: #34d399; }
+        .trend-down { color: #f87171; }
+        .trend-neutral { color: #8b92b4; }
+        
+        .data-quality {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            color: #6b7280;
+        }
+        
+        .quality-bar {
+            width: 60px;
+            height: 4px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+        
+        .quality-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4facfe, #00f2fe);
+            transition: width 0.5s ease;
+        }
+        
+        /* Loading */
+        .loading {
+            text-align: center;
+            padding: 80px 40px;
+            color: #6b7280;
+            grid-column: 1 / -1;
+        }
+        
+        .loading-spinner {
+            width: 60px;
+            height: 60px;
+            border: 3px solid rgba(255,255,255,0.1);
+            border-top-color: #4facfe;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 24px;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        /* Footer */
+        .last-update {
+            font-size: 12px;
+            color: #6b7280;
+            text-align: center;
+            padding: 20px;
+            border-top: 1px solid rgba(255,255,255,0.05);
+        }
+        
+        /* Empty state */
+        .empty-state {
+            text-align: center;
+            padding: 80px 40px;
+            color: #6b7280;
+            grid-column: 1 / -1;
+        }
+        
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            .header {
+                padding: 16px 20px;
+            }
+            
+            .header h1 {
+                font-size: 20px;
+            }
+            
+            .stats-bar {
+                grid-template-columns: repeat(2, 1fr);
+                padding: 16px 20px;
+                gap: 12px;
+            }
+            
+            .stat-card {
+                padding: 16px;
+            }
+            
+            .stat-value {
+                font-size: 28px;
+            }
+            
+            .controls {
+                padding: 16px 20px;
+            }
+            
+            .search-box {
+                min-width: 100%;
+            }
+            
+            .assets-grid {
+                padding: 16px 20px 40px;
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🔬 BioBD Platform</h1>
+        <div class="connection-status">
+            <span class="status-dot" id="statusDot"></span>
+            <span id="statusText">Connecting...</span>
+        </div>
+    </div>
+    
+    <div class="stats-bar">
+        <div class="stat-card">
+            <div class="stat-label">Total Assets</div>
+            <div class="stat-value" id="totalAssets">-</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Avg AI Score</div>
+            <div class="stat-value" id="avgScore">-</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">High Priority</div>
+            <div class="stat-value" id="highPriority">-</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Connected</div>
+            <div class="stat-value" id="activeClients">1</div>
+        </div>
+    </div>
+    
+    <div class="controls">
+        <div class="search-box">
+            <input type="text" id="searchInput" placeholder="Search assets by target, indication, company...">
+        </div>
+        <select class="filter-select" id="phaseFilter">
+            <option value="">All Phases</option>
+            <option value="Preclinical">Preclinical</option>
+            <option value="Phase I">Phase I</option>
+            <option value="Phase II">Phase II</option>
+            <option value="Phase III">Phase III</option>
+            <option value="Approved">Approved</option>
+        </select>
+        <select class="filter-select" id="regionFilter">
+            <option value="">All Regions</option>
+            <option value="China">China</option>
+            <option value="USA">USA</option>
+            <option value="Europe">Europe</option>
+            <option value="Japan">Japan</option>
+        </select>
+        <select class="filter-select" id="priorityFilter">
+            <option value="">All Priorities</option>
+            <option value="High">High</option>
+            <option value="Medium">Medium</option>
+            <option value="Low">Low</option>
+        </select>
+        <span class="results-count" id="resultsCount"></span>
+    </div>
+    
+    <div class="assets-grid" id="assetsGrid">
+        <div class="loading">
+            <div class="loading-spinner"></div>
+            <p>Loading assets from server...</p>
+        </div>
+    </div>
+    
+    <div class="last-update" id="lastUpdate">Waiting for data...</div>
+
+    <script>
+        // WebSocket Configuration
+        const WS_URL = 'ws://localhost:8765';
+        let ws = null;
+        let assets = [];
+        let filteredAssets = [];
+        let reconnectAttempts = 0;
+        const MAX_RECONNECT_ATTEMPTS = 10;
+        
+        // DOM Elements
+        const statusDot = document.getElementById('statusDot');
+        const statusText = document.getElementById('statusText');
+        const assetsGrid = document.getElementById('assetsGrid');
+        const searchInput = document.getElementById('searchInput');
+        const phaseFilter = document.getElementById('phaseFilter');
+        const regionFilter = document.getElementById('regionFilter');
+        const priorityFilter = document.getElementById('priorityFilter');
+        const resultsCount = document.getElementById('resultsCount');
+        
+        // Connect to WebSocket
+        function connect() {
+            console.log('Connecting to WebSocket...');
+            ws = new WebSocket(WS_URL);
+            
+            ws.onopen = () => {
+                console.log('✅ WebSocket connected');
+                statusDot.classList.add('connected');
+                statusText.textContent = 'Live';
+                reconnectAttempts = 0;
+                
+                // Send ping to verify connection
+                ws.send(JSON.stringify({ action: 'ping' }));
+            };
+            
+            ws.onmessage = (event) => {
+                try {
+                    const message = JSON.parse(event.data);
+                    handleMessage(message);
+                } catch (e) {
+                    console.error('Failed to parse message:', e);
+                }
+            };
+            
+            ws.onclose = (event) => {
+                console.log('WebSocket closed:', event.code, event.reason);
+                statusDot.classList.remove('connected');
+                statusText.textContent = 'Reconnecting...';
+                
+                // Reconnect with exponential backoff
+                reconnectAttempts++;
+                if (reconnectAttempts <= MAX_RECONNECT_ATTEMPTS) {
+                    const delay = Math.min(3000 * Math.pow(1.5, reconnectAttempts - 1), 30000);
+                    console.log(`Reconnecting in ${delay}ms (attempt ${reconnectAttempts})`);
+                    setTimeout(connect, delay);
+                } else {
+                    statusText.textContent = 'Disconnected';
+                    assetsGrid.innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-state-icon">⚠️</div>
+                            <h3>Connection Lost</h3>
+                            <p>Please refresh the page to reconnect</p>
+                        </div>
+                    `;
+                }
+            };
+            
+            ws.onerror = (error) => {
+                console.error('WebSocket error:', error);
+                statusText.textContent = 'Error';
+            };
+        }
+        
+        // Handle incoming messages
+        function handleMessage(message) {
+            switch(message.type) {
+                case 'init':
+                    assets = message.data.assets || [];
+                    filteredAssets = [...assets];
+                    renderAssets();
+                    updateStats(message.data.metadata);
+                    updateResultsCount();
+                    break;
+                    
+                case 'asset_update':
+                    const updatedAsset = message.data;
+                    const index = assets.findIndex(a => a.id === updatedAsset.id);
+                    if (index !== -1) {
+                        assets[index] = updatedAsset;
+                        updateAssetCard(updatedAsset);
+                    }
+                    break;
+                    
+                case 'stats_update':
+                    updateStatsFromServer(message.data);
+                    break;
+                    
+                case 'pong':
+                    // Connection is alive
+                    break;
+                    
+                case 'error':
+                    console.error('Server error:', message.message);
+                    break;
+            }
+        }
+        
+        // Update stats display
+        function updateStats(metadata) {
+            if (metadata) {
+                document.getElementById('totalAssets').textContent = metadata.total || '-';
+            }
+        }
+        
+        function updateStatsFromServer(data) {
+            if (data.total_assets !== undefined) {
+                document.getElementById('totalAssets').textContent = data.total_assets;
+            }
+            if (data.avg_score !== undefined) {
+                document.getElementById('avgScore').textContent = data.avg_score;
+            }
+            if (data.high_priority !== undefined) {
+                document.getElementById('highPriority').textContent = data.high_priority;
+            }
+            document.getElementById('lastUpdate').textContent = 
+                `Last update: ${new Date().toLocaleTimeString()}`;
+        }
+        
+        // Render assets grid
+        function renderAssets() {
+            if (filteredAssets.length === 0) {
+                assetsGrid.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">🔍</div>
+                        <h3>No assets found</h3>
+                        <p>Try adjusting your search or filters</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            assetsGrid.innerHTML = filteredAssets.map(asset => createAssetCard(asset)).join('');
+        }
+        
+        // Create asset card HTML
+        function createAssetCard(asset) {
+            const priorityClass = `priority-${asset.priority.toLowerCase()}`;
+            const trendClass = asset.trend === '↑' ? 'trend-up' : 
+                              asset.trend === '↓' ? 'trend-down' : 'trend-neutral';
+            
+            return `
+                <div class="asset-card" data-id="${asset.id}">
+                    <div class="asset-header">
+                        <span class="asset-id">${asset.id}</span>
+                        <span class="asset-priority ${priorityClass}">${asset.priority}</span>
+                    </div>
+                    <div class="asset-target">${asset.target}</div>
+                    <div class="asset-indication">${asset.indication}</div>
+                    <div class="asset-meta">
+                        <div class="meta-item">
+                            <div class="meta-label">Phase</div>
+                            <div class="meta-value">${asset.phase}</div>
+                        </div>
+                        <div class="meta-item">
+                            <div class="meta-label">Region</div>
+                            <div class="meta-value">${asset.region}</div>
+                        </div>
+                        <div class="meta-item">
+                            <div class="meta-label">Company</div>
+                            <div class="meta-value">${truncateText(asset.company, 12)}</div>
+                        </div>
+                    </div>
+                    <div class="asset-footer">
+                        <div class="ai-score">
+                            <span class="score-value">${asset.ai_score}</span>
+                            <span class="trend ${trendClass}">${asset.trend}</span>
+                        </div>
+                        <div class="data-quality">
+                            <span>Quality</span>
+                            <div class="quality-bar">
+                                <div class="quality-fill" style="width: ${asset.data_quality}%"></div>
+                            </div>
+                            <span>${asset.data_quality}%</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        // Update single asset card
+        function updateAssetCard(asset) {
+            const card = document.querySelector(`[data-id="${asset.id}"]`);
+            if (card) {
+                card.classList.add('highlight');
+                const newCard = createAssetCard(asset);
+                card.outerHTML = newCard;
+                setTimeout(() => {
+                    const newCardEl = document.querySelector(`[data-id="${asset.id}"]`);
+                    if (newCardEl) newCardEl.classList.remove('highlight');
+                }, 1000);
+            }
+        }
+        
+        // Filter assets
+        function filterAssets() {
+            const search = searchInput.value.toLowerCase().trim();
+            const phase = phaseFilter.value;
+            const region = regionFilter.value;
+            const priority = priorityFilter.value;
+            
+            filteredAssets = assets.filter(asset => {
+                const matchSearch = !search || 
+                    (asset.target && asset.target.toLowerCase().includes(search)) ||
+                    (asset.indication && asset.indication.toLowerCase().includes(search)) ||
+                    (asset.company && asset.company.toLowerCase().includes(search)) ||
+                    (asset.name && asset.name.toLowerCase().includes(search));
+                
+                const matchPhase = !phase || asset.phase === phase;
+                const matchRegion = !region || asset.region === region;
+                const matchPriority = !priority || asset.priority === priority;
+                
+                return matchSearch && matchPhase && matchRegion && matchPriority;
+            });
+            
+            renderAssets();
+            updateResultsCount();
+        }
+        
+        // Update results count
+        function updateResultsCount() {
+            resultsCount.textContent = `Showing ${filteredAssets.length} of ${assets.length} assets`;
+        }
+        
+        // Truncate text
+        function truncateText(text, maxLength) {
+            if (!text) return '';
+            if (text.length <= maxLength) return text;
+            return text.substring(0, maxLength) + '...';
+        }
+        
+        // Event listeners
+        searchInput.addEventListener('input', filterAssets);
+        phaseFilter.addEventListener('change', filterAssets);
+        regionFilter.addEventListener('change', filterAssets);
+        priorityFilter.addEventListener('change', filterAssets);
+        
+        // Connect on load
+        connect();
+    </script>
+</body>
+</html>
